@@ -28,7 +28,23 @@ SECRET_KEY = env('SECRET')
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ['https://quick-quiz-fvcm.onrender.com', 'https://*.127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ['https://quick-quiz-fvcm.onrender.com', 'https://*.127.0.0.1', 'http://127.0.0.1:5000',]
+
+
+CORS_ALLOWED_ORIGINS = [
+    "https://quick-quiz-fvcm.onrender.com",
+    "http://127.0.0.1:5000",
+]
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+
+
 
 
 # Application definition
@@ -42,7 +58,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    # 'django-filter',
+    'corsheaders',
+   
     'Accounts',
 ]
 
@@ -54,6 +71,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'DRF_project.urls'
@@ -89,6 +107,15 @@ DATABASES = {
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PERMISSION_CLASSES': [
+            'rest_framework.permissions.IsAuthenticated',
+            'rest_framework.permissions.AllowAny',
+        ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',  # enables simple command line authentication
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    )
 }
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from . import serializers
+from .models import UserDetails
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
@@ -86,25 +87,93 @@ class UserLoginApiView(APIView):
         return Response(serializer.errors)
     
 
-# give userProfileUpdateView
 class UserProfileUpdateView(APIView):
 
     def get(self, request):
-        user = request.user
-        serializer = serializers.UserUpdateSerializer(user)
+        user_details = UserDetails.objects.get(user=request.user)
+        serializer = serializers.UserUpdateSerializer(user_details)
         return Response(serializer.data)
 
     def post(self, request):
-        user = request.user
-        serializer = serializers.UserUpdateSerializer(user, data=request.data, partial=True)
+        user_details = UserDetails.objects.get(user=request.user)
+        serializer = serializers.UserUpdateSerializer(user_details, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors)
 
 
+
+
+from rest_framework.permissions import IsAuthenticated
+
+class UserDetailsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user_details = UserDetails.objects.get(user=request.user)
+        serializer = serializers.UserDetailsSerializer(user_details)
+        return Response(serializer.data)
+
+
+from rest_framework import status
+
 class UserLogoutView(APIView):
     def get(self, request):
-        request.user.auth_token.delete()
+        # Check if the user is authenticated
+        if request.user.is_authenticated:
+         # Delete the auth token if the user is authenticated
+         request.user.auth_token.delete()
+        # Logout the user
         logout(request)
-        return redirect('login')
+        return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
+
+
+    # def post(self, request):
+    #     try:
+    #         # Get the user's token from the request headers
+    #         token_key = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+    #         token = Token.objects.get(key=token_key)
+    #         # Delete the token
+    #         token.delete()
+    #         return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
+    #     except Token.DoesNotExist:
+    #         return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+    #     except AttributeError:
+    #         return Response({'error': 'Token not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+class UserDetailsViewSet(viewsets.ModelViewSet):
+    queryset = UserDetails.objects.all()
+    serializer_class = serializers.UserUpdateSerializer
+
+
+
+from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework import status
+from .models import UserDetails
+from django.contrib.auth.models import User
+from .serializers import UserUpdateSerializer
+from rest_framework.permissions import IsAuthenticated
+
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserUpdateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Only return instances related to the currently authenticated user
+        return User.objects.filter(id=self.request.user.id)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        # Ensure the user is updating their own data
+        if instance.id != self.request.user.id:
+            return Response({'error': 'You can only update your own data.'}, status=status.HTTP_403_FORBIDDEN)
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
