@@ -8,6 +8,8 @@ from rest_framework.authtoken.models import Token
 
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login , logout
+from django.views.decorators.csrf import csrf_exempt
+
 
 
 from django.shortcuts import redirect
@@ -26,6 +28,7 @@ from django.template.loader import render_to_string
 class UserRegistration(APIView):
     serializer_class = serializers.RegistrationSerializer
 
+    @csrf_exempt
     def post(self, request):
         serializer = self.serializer_class(data = request.data)
         if serializer.is_valid():
@@ -87,36 +90,7 @@ class UserLoginApiView(APIView):
         return Response(serializer.errors)
     
 
-class UserProfileUpdateView(APIView):
 
-    def get(self, request):
-        user_details = UserDetails.objects.get(user=request.user)
-        serializer = serializers.UserUpdateSerializer(user_details)
-        return Response(serializer.data)
-
-    def post(self, request):
-        user_details = UserDetails.objects.get(user=request.user)
-        serializer = serializers.UserUpdateSerializer(user_details, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
-
-
-
-
-from rest_framework.permissions import IsAuthenticated
-
-class UserDetailsView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        user_details = UserDetails.objects.get(user=request.user)
-        serializer = serializers.UserDetailsSerializer(user_details)
-        return Response(serializer.data)
-
-
-from rest_framework import status
 
 class UserLogoutView(APIView):
     def get(self, request):
@@ -141,39 +115,3 @@ class UserLogoutView(APIView):
     #         return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
     #     except AttributeError:
     #         return Response({'error': 'Token not provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-class UserDetailsViewSet(viewsets.ModelViewSet):
-    queryset = UserDetails.objects.all()
-    serializer_class = serializers.UserUpdateSerializer
-
-
-
-from rest_framework import viewsets
-from rest_framework.response import Response
-from rest_framework import status
-from .models import UserDetails
-from django.contrib.auth.models import User
-from .serializers import UserUpdateSerializer
-from rest_framework.permissions import IsAuthenticated
-
-class UserViewSet(viewsets.ModelViewSet):
-    serializer_class = UserUpdateSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Only return instances related to the currently authenticated user
-        return User.objects.filter(id=self.request.user.id)
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-
-        # Ensure the user is updating their own data
-        if instance.id != self.request.user.id:
-            return Response({'error': 'You can only update your own data.'}, status=status.HTTP_403_FORBIDDEN)
-
-        self.perform_update(serializer)
-        return Response(serializer.data)
-
