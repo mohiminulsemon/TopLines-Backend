@@ -28,11 +28,11 @@ SECRET_KEY = env('SECRET')
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ['https://quick-quiz-fvcm.onrender.com', 'https://*.127.0.0.1', 'http://127.0.0.1:5000',]
+CSRF_TRUSTED_ORIGINS = ['https://toplines-backend.onrender.com', 'https://*.127.0.0.1', 'http://127.0.0.1:5000',]
 
 
 CORS_ALLOWED_ORIGINS = [
-    "https://quick-quiz-fvcm.onrender.com",
+    "https://toplines-backend.onrender.com",
     "http://127.0.0.1:5000",
 ]
 CORS_ALLOW_METHODS = [
